@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 import { HighlightedText } from "@/components/HighlightedText";
-import type { HighlightItem } from "@/lib/highlighter";
+import type { HighlightItem, HighlightType } from "@/lib/highlighter";
+import { typeToClasses } from "@/lib/highlighter";
 
 const demoParagraph = `When the expedition finally reached the ridge, the air felt kind of impressive — thin and sharp like shattered glass. The guide, apparently confident, said the path was basically safe, though a few old ropes looked kinda tired. I literally held my breath as the clouds rolled in, and, for a moment, time itself seemed bored with us.`;
 
@@ -48,16 +49,16 @@ const demoHighlights: HighlightItem[] = [
 export function DemoBar() {
   const [show, setShow] = useState(true);
 
-  const legend = useMemo(
-    () => [
-      { label: "typo", className: "bg-orange-100 underline decoration-orange-600" },
-      { label: "vague", className: "bg-yellow-100 underline decoration-yellow-600" },
-      { label: "wording", className: "bg-purple-100 underline decoration-purple-600" },
-      { label: "error", className: "bg-red-100 underline decoration-red-600" },
-      { label: "boring", className: "bg-gray-200 underline decoration-gray-600" },
-    ],
-    []
-  );
+  const legend = useMemo(() => {
+    const order: HighlightType[] = [
+      "typo",
+      "vague",
+      "wording",
+      "error",
+      "boring",
+    ];
+    return order.map((label) => ({ label, className: typeToClasses[label] }));
+  }, []);
 
   return (
     <div className="w-full sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-gray-200">
@@ -71,9 +72,9 @@ export function DemoBar() {
           >
             {show ? "Hide demo highlights" : "Show demo highlights"}
           </button>
-          <div className="hidden sm:flex gap-2 text-xs text-gray-700">
+      <div className="hidden sm:flex gap-2 text-xs text-gray-700">
             {legend.map((l) => (
-              <span key={l.label} className={`${l.className} rounded px-1 underline-offset-2`}>{l.label}</span>
+        <span key={l.label} className={`${l.className} rounded px-1`}>{l.label}</span>
             ))}
           </div>
         </div>
