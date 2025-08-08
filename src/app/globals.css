@@ -7,11 +7,11 @@ body {
   margin: 0;
   background: #fff;
   color: #111;
-  font-family: var(--font-remark), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: var(--font-libertinus), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   line-height: 1.4;
 }
 
-/* Typography using LTRemark weights */
+/* Typography defaults */
 h1, h2, h3, h4, h5, h6 { font-weight: 700; margin: 0; }
 strong, b { font-weight: 700; }
 em, i { font-style: italic; }

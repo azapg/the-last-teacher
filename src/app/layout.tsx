@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
-// LTRemark font family from /public/fonts
-const remark = localFont({
-  variable: "--font-remark",
+const libertinus = localFont({
+  variable: "--font-libertinus",
   display: "swap",
   src: [
-    { path: "../../public/fonts/LTRemark-Regular.otf", weight: "400", style: "normal" },
-    { path: "../../public/fonts/LTRemark-Italic.otf", weight: "400", style: "italic" },
-    { path: "../../public/fonts/LTRemark-Bold.otf", weight: "700", style: "normal" },
-    { path: "../../public/fonts/LTRemark-BoldItalic.otf", weight: "700", style: "italic" },
-    { path: "../../public/fonts/LTRemark-Black.otf", weight: "900", style: "normal" },
-    { path: "../../public/fonts/LTRemark-BlackItalic.otf", weight: "900", style: "italic" },
+    { path: "../../public/fonts/libertinus/LibertinusSerif-Regular.otf", weight: "400", style: "normal" },
+    { path: "../../public/fonts/libertinus/LibertinusSerif-Italic.otf", weight: "400", style: "italic" },
+    { path: "../../public/fonts/libertinus/LibertinusSerif-Semibold.otf", weight: "600", style: "normal" },
+    { path: "../../public/fonts/libertinus/LibertinusSerif-SemiboldItalic.otf", weight: "600", style: "italic" },
+    { path: "../../public/fonts/libertinus/LibertinusSerif-Bold.otf", weight: "700", style: "normal" },
+    { path: "../../public/fonts/libertinus/LibertinusSerif-BoldItalic.otf", weight: "700", style: "italic" },
   ],
 });
 
@@ -28,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-  <body className={`${remark.variable} antialiased`}>
+  <body className={`${libertinus.variable} antialiased`}>
         {children}
       </body>
     </html>
