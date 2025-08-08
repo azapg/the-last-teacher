@@ -1,60 +1,52 @@
 # AI agent guide for this repo
 
-Scope: Minimal Next.js 15 (App Router) + React 19 + Tailwind CSS v4 writing surface. Keep changes small and aligned with existing patterns.
+Scope: Minimal Next.js 15 (App Router) + React 19 + Tailwind CSS v4 writing surface. Keep diffs tiny, align with existing patterns, and avoid framework bloat.
 
-## Architecture and conventions
-- App Router structure lives under `src/app/*`.
-  - Root layout: `src/app/layout.tsx` sets global font via `next/font/local` (Libertinus) and includes `./globals.css`.
-  - Home page: `src/app/page.tsx` renders `<Writer />` and controls layout width (`WRITER_MAX_W`) and font size via a prop.
-- Components are colocated under `src/components/` (example: `src/components/Writer.tsx`).
-  - Client components use the "use client" directive when hooks are used.
-  - Props are simple and typed; follow the `WriterProps` style.
-- Styling: Tailwind v4 utilities (via PostCSS plugin) plus a small `globals.css`.
-  - `src/app/globals.css` imports `tailwindcss` and defines a few utilities (`hide-scrollbar`, `caret-blink`, etc.).
-  - Prefer Tailwind utility classes in JSX and only add globals for widely reused primitives.
-- Fonts: Local fonts loaded with `next/font/local` and a CSS variable `--font-libertinus` applied on `<body>`.
-  - Font files live in `public/fonts/libertinus/*`. Keep additions here and reference them in `layout.tsx`.
-- TypeScript path alias `@/*` maps to `./src/*` (tsconfig). Current code mixes relative imports; both work—prefer `@/` in new code for clarity.
+## Architecture and layout
+- App Router lives under `src/app/*`.
+  - Root layout `src/app/layout.tsx` loads two local fonts via `next/font/local`:
+    - `--font-host-grotesk` (UI default on <body>) from `public/fonts/host-grotesk/*`.
+    - `--font-libertinus` (writer/longform) from `public/fonts/libertinus/*`.
+    - Includes `./globals.css` (Tailwind v4 import + CSS vars/utilities).
+  - Home `src/app/page.tsx` renders `<DemoBar />` and `<Writer />` inside a centered container (`WRITER_MAX_W = "max-w-5xl"`).
+
+## Core components and patterns
+- `src/components/Writer.tsx` (client): autofocus `<textarea>` writing surface.
+  - API: `fontSize?: string` (e.g., `"clamp(28px,5vw,48px)"`), `placeholder?`, `className?`.
+  - Styling: utility-first; uses `hide-scrollbar`, `caret-blink`, and `style={{ fontFamily: "var(--font-libertinus), serif" }}`.
+- `src/components/DemoBar.tsx` (client): toggleable demo/legend.
+  - Uses `Button` from `src/components/ui/button.tsx` (cva + `cn`) and `HighlightedText`.
+  - UI font set to Host Grotesk; longform preview uses Libertinus.
+- `src/components/HighlightedText.tsx`: stateless renderer for inline highlights.
+  - Splits text into parts using `computeHighlightRanges` + `splitByRanges` from `src/lib/highlighter.ts`.
+  - For items with `hoverTip`, wraps the fragment in Radix Tooltip (`components/ui/tooltip.tsx`).
+- UI primitives:
+  - `components/ui/button.tsx` uses class-variance-authority; prefer `variant="outline|..."`, `size="sm|..."` and compose with `cn(...)` from `src/lib/utils.ts`.
+  - `components/ui/tooltip.tsx` wraps `@radix-ui/react-tooltip`; content uses explicit HSL CSS vars for reliable contrast in light mode.
+
+## Highlighter library (what to know)
+- `src/lib/highlighter.ts` provides:
+  - Types: `HighlightType` ("typo" | "vague" | "wording" | "error" | "boring"), `HighlightItem`.
+  - `computeHighlightRanges(text, items)`: finds non-overlapping ranges, preferring `fragment` inside `context`; otherwise first occurrence of `fragment`. Overlaps are dropped conservatively (keep-first policy).
+  - `splitByRanges(text, ranges)`: returns text parts with optional attached range.
+  - `typeToClasses`: Tailwind bg + underline mapping per type. If you add a new type, update the union and this map.
+
+## Styling and conventions
+- Tailwind v4 via `@tailwindcss/postcss` (no tailwind.config). Use utilities in JSX; keep globals small.
+- CSS variables defined in `globals.css` (colors, radius). Reuse helpers: `hide-scrollbar`, `caret-blink`, `.page`.
+- Only add `"use client"` when using hooks/browser APIs. Prefer `@/` imports (alias in `tsconfig.json`). Use App Router metadata exports, not `next/head`.
 
 ## Developer workflows
-- Dev server (Turbopack):
-  - With Bun (lockfile present): `bun run dev`
-  - Or npm/yarn/pnpm: `npm run dev` / `yarn dev` / `pnpm dev`
-- Build: `bun run build` (or `npm run build`)
-- Start production server: `bun run start`
-- Lint: `bun run lint` (ESLint flat config extends `next/core-web-vitals` + `next/typescript`).
-- Tests: none configured. If you add tests, include the runner in `package.json` and minimal examples.
+- Dev (Turbopack): `bun run dev` (or `npm/yarn/pnpm run dev`).
+- Build: `bun run build`; Start: `bun run start`.
+- Lint: `bun run lint` (Flat config extends Next presets).
+- Tests: `bun test` (see `tests/highlighter.test.ts` for examples using `bun:test`). Run a single file: `bun test tests/highlighter.test.ts`.
 
-## Patterns to follow (with examples)
-- Pages/routes: add a folder under `src/app/<route>/page.tsx`.
-  - Example: `src/app/about/page.tsx` exporting a default React component.
-- Client components: include `"use client"` only when needed (hooks, browser-only APIs).
-- Accessibility & UX: mirror `Writer.tsx` defaults (e.g., `aria-label`, `spellCheck={false}`, selection and caret styles from globals).
-- Sizing text: follow `Writer`’s API and use CSS sizes like `clamp(28px,5vw,48px)`.
-- Styling: utility-first. Example from `Writer.tsx`:
-  - `className="w-full h-full resize-none border-0 outline-none ... caret-blink selection:bg-[#b3b3b3]"`.
+## Key references
+- Pages: `src/app/page.tsx`.
+- Fonts/layout: `src/app/layout.tsx`, `public/fonts/*`.
+- Writer: `src/components/Writer.tsx`.
+- Demo + highlighting: `src/components/DemoBar.tsx`, `src/components/HighlightedText.tsx`, `src/lib/highlighter.ts`.
+- UI primitives: `src/components/ui/button.tsx`, `src/components/ui/tooltip.tsx`, utils in `src/lib/utils.ts`.
 
-## External/tooling details
-- Next.js 15.4.6, React 19.1.0.
-- Tailwind CSS v4 via `@tailwindcss/postcss` in `postcss.config.mjs`; no separate Tailwind config file is present.
-- ESLint configured via `eslint.config.mjs` using `FlatCompat` to extend Next presets.
-
-## Do/Don’t for this repo
-- Do keep UI minimal and distraction-free; reuse existing utilities from `globals.css`
-- Do load additional fonts via `next/font/local` and apply via CSS variables on `<body>`.
-- Do prefer `@/` imports for new modules (e.g., `import { Writer } from "@/components/Writer"`).
-- Don’t introduce the legacy `pages/` directory—use App Router only.
-- Don’t add global CSS frameworks; stick to Tailwind utilities and small globals.
-- Don’t use `next/head` in App Router; use `export const metadata` in layouts/pages.
-
-## Key files
-- `src/app/layout.tsx`: global fonts, metadata, and body classes.
-- `src/app/page.tsx`: landing page using `Writer`.
-- `src/components/Writer.tsx`: core writing surface component.
-- `src/app/globals.css`: Tailwind import and shared utilities.
-- `package.json`: scripts for dev/build/lint; prefer Bun in this workspace.
-
-If anything is unclear (e.g., adding routes, extending `Writer`, or introducing state/storage), ask for confirmation and propose a minimal diff aligned with these patterns.
-
-## Some tips
-- The `run_in_terminal` tool sometimes fails to capture the command output. If that happens, use the `get_terminal_last_command` tool to retrieve the last command output from the terminal. If that fails, ask the user to copy-paste the output from the terminal.
+Notes for changes: keep UI minimal and distraction-free; avoid adding server APIs/state unless requested. If unclear (e.g., new route, extending highlighting types), propose a minimal diff with file paths.
