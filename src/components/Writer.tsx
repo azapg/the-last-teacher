@@ -14,6 +14,7 @@ export function Writer({
   className = "",
 }: WriterProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLElement>(null);
 
   // Live analyzer configuration
   const ANALYZE_DELAY_MS = 5000;
@@ -95,7 +96,7 @@ export function Writer({
       .replaceAll(/"/g, "&quot;")
       .replaceAll(/'/g, "&#39;");
 
-  // Build innerHTML with <mark> wrappers and native title tooltip
+  // Build innerHTML with <mark> wrappers and our own tooltip wiring (data-tip)
   const buildHTMLWithHighlights = (
     text: string,
     items: import("@/lib/highlighter").HighlightItem[]
@@ -109,10 +110,10 @@ export function Writer({
       if (!p.range) {
         html += escapeHtml(p.text);
       } else {
-        const cls = `${typeToClasses[p.range.item.type]} rounded-sm px-0.5`;
-        const title = (p.range.item.hoverTip ?? "").trim();
-        const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
-        html += `<mark class="${cls}"${titleAttr}>${escapeHtml(p.text)}</mark>`;
+        const cls = `${typeToClasses[p.range.item.type]} rounded-sm px-0.5 pointer-events-auto`;
+        const tip = (p.range.item.hoverTip ?? "").trim();
+        const tipAttr = tip ? ` data-tip="${escapeHtml(tip)}"` : "";
+        html += `<mark class="${cls}" data-highlight="true"${tipAttr}>${escapeHtml(p.text)}</mark>`;
       }
     }
     return html;
@@ -125,11 +126,8 @@ export function Writer({
     const text = rawTextRef.current;
 
     const caret = getCaretOffset(el);
-    // whitespace-pre-wrap ensures \n are rendered; keep raw text as-is
     el.innerHTML = buildHTMLWithHighlights(text, items);
-    // Restore caret to best-effort same absolute offset
     setCaretOffset(el, Math.min(caret, text.length));
-
     el.dataset.empty = computeEmpty(el) ? "true" : "false";
   };
 
@@ -218,6 +216,136 @@ export function Writer({
     }
   };
 
+  // Delegated tooltip for marks (hover + click-to-pin)
+  const tooltipElRef = useRef<HTMLDivElement | null>(null);
+  const pinnedTargetRef = useRef<HTMLElement | null>(null);
+  const hoverTargetRef = useRef<HTMLElement | null>(null);
+
+  const ensureTooltipEl = () => {
+    if (tooltipElRef.current) return tooltipElRef.current;
+    const host = document.createElement("div");
+    host.style.position = "absolute";
+    host.style.zIndex = "50";
+    host.style.display = "none";
+    // Match TooltipContent styling (simplified)
+    host.className =
+      "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] rounded-md px-3 py-1.5 text-xs shadow-sm";
+    // Optional arrow
+    const arrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    arrow.setAttribute("viewBox", "0 0 8 8");
+    arrow.setAttribute("class", "absolute -top-2 left-1/2 -translate-x-1/2 size-2");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M0 8 L4 0 L8 8 Z");
+    path.setAttribute("fill", "currentColor");
+    arrow.appendChild(path);
+    host.appendChild(arrow);
+
+    const content = document.createElement("div");
+    content.setAttribute("data-content", "true");
+    host.appendChild(content);
+
+    const wrapper = wrapperRef.current;
+    (wrapper ?? document.body).appendChild(host);
+    tooltipElRef.current = host;
+    return host;
+  };
+
+  const positionTooltip = (target: HTMLElement) => {
+    const tooltip = ensureTooltipEl();
+    const wrapper = wrapperRef.current;
+    const wrapRect = (wrapper ?? document.body).getBoundingClientRect();
+    const rect = target.getBoundingClientRect();
+
+    const top = rect.bottom - wrapRect.top + 6; // 6px gap
+    const left = rect.left - wrapRect.left + rect.width / 2;
+
+    tooltip.style.display = "block";
+    tooltip.style.top = `${Math.round(top)}px`;
+    // Center by translating half width (we can't know width yet, so use transform)
+    tooltip.style.left = `${Math.round(left)}px`;
+    tooltip.style.transform = "translateX(-50%)";
+  };
+
+  const showTooltipFor = (target: HTMLElement) => {
+    const tooltip = ensureTooltipEl();
+    const tip = target.getAttribute("data-tip") || "";
+    const content = tooltip.querySelector('[data-content="true"]') as HTMLDivElement | null;
+    if (content) content.textContent = tip;
+    positionTooltip(target);
+  };
+
+  const hideTooltip = () => {
+    const tooltip = ensureTooltipEl();
+    tooltip.style.display = "none";
+  };
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    const editor = ref.current;
+    if (!wrapper || !editor) return;
+
+    const isMark = (el: Element | null): el is HTMLElement =>
+      !!el && el instanceof HTMLElement && el.matches('mark[data-highlight][data-tip]');
+
+    const onPointerDown = (e: PointerEvent) => {
+      const target = (e.target as Element)?.closest('mark[data-highlight][data-tip]') as HTMLElement | null;
+      if (target) {
+        // Toggle pin on the clicked mark
+        if (pinnedTargetRef.current === target) {
+          pinnedTargetRef.current = null;
+          hideTooltip();
+        } else {
+          pinnedTargetRef.current = target;
+          showTooltipFor(target);
+        }
+        return;
+      }
+      // Click outside closes pin
+      if (pinnedTargetRef.current) {
+        pinnedTargetRef.current = null;
+        hideTooltip();
+      }
+    };
+
+    const onMouseOver = (e: MouseEvent) => {
+      if (pinnedTargetRef.current) return;
+      const target = (e.target as Element)?.closest('mark[data-highlight][data-tip]') as HTMLElement | null;
+      if (target && isMark(target)) {
+        hoverTargetRef.current = target;
+        showTooltipFor(target);
+      }
+    };
+
+    const onMouseOut = (e: MouseEvent) => {
+      if (pinnedTargetRef.current) return;
+      const related = e.relatedTarget as Element | null;
+      // If moving to another mark, let onMouseOver handle reposition
+      if (related && isMark(related.closest('mark[data-highlight][data-tip]'))) return;
+      hoverTargetRef.current = null;
+      hideTooltip();
+    };
+
+    const onScrollOrResize = () => {
+      const target = pinnedTargetRef.current || hoverTargetRef.current;
+      if (target) showTooltipFor(target);
+    };
+
+    wrapper.addEventListener("pointerdown", onPointerDown);
+    wrapper.addEventListener("mouseover", onMouseOver);
+    wrapper.addEventListener("mouseout", onMouseOut);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+
+    return () => {
+      wrapper.removeEventListener("pointerdown", onPointerDown);
+      wrapper.removeEventListener("mouseover", onMouseOver);
+      wrapper.removeEventListener("mouseout", onMouseOut);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+      // Do not remove tooltip element; it is reused between patches
+    };
+  }, []);
+
   useEffect(() => {
     const el = ref.current;
     el?.focus();
@@ -234,7 +362,7 @@ export function Writer({
   }, []);
 
   return (
-    <section className={`w-full h-full bg-white flex flex-col min-h-0 relative ${className}`}>
+    <section ref={wrapperRef as any} className={`w-full h-full bg-white flex flex-col min-h-0 relative ${className}`}>
       {/* Loading spinner */}
       {loading && (
         <div
