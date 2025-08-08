@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { HighlightedText } from "@/components/HighlightedText";
 import type { HighlightItem, HighlightType } from "@/lib/highlighter";
-import { typeToClasses } from "@/lib/highlighter";
+import { Button } from "@/components/ui/button";
 
 const demoParagraph = `When the expedition finally reached the ridge, the air felt kind of impressive — thin and sharp like shattered glass. The guide, apparently confident, said the path was basically safe, though a few old ropes looked kinda tired. I literally held my breath as the clouds rolled in, and, for a moment, time itself seemed bored with us.`;
 
@@ -50,36 +50,51 @@ export function DemoBar() {
   const [show, setShow] = useState(true);
 
   const legend = useMemo(() => {
-    const order: HighlightType[] = [
-      "typo",
-      "vague",
-      "wording",
-      "error",
-      "boring",
-    ];
-    return order.map((label) => ({ label, className: typeToClasses[label] }));
+    const order: HighlightType[] = ["typo", "vague", "wording", "error", "boring"];
+    const desc: Record<HighlightType, string> = {
+      typo: "Spelling or informal colloquialism—use standard or clearer wording.",
+      vague: "Vague phrasing—be more specific and concrete.",
+      wording: "Filler or wordy phrasing—tighten the sentence.",
+      error: "Incorrect or misleading usage—fix accuracy.",
+      boring: "Cliché or dull phrasing—choose fresher language.",
+    };
+    return order.map((label) => ({
+      label,
+      text: label,
+      items: [
+        {
+          fragment: label,
+          context: label, // ensure exact match in this tiny text
+          type: label,
+          hoverTip: desc[label],
+        } as HighlightItem,
+      ],
+    }));
   }, []);
 
   return (
-    <div className="w-full sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-gray-200">
+    <div className="w-full sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-gray-200" style={{ fontFamily: "var(--font-host-grotesk), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" }}>
       <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => setShow((s) => !s)}
-            className="text-sm px-3 py-1 rounded border border-gray-300 hover:bg-gray-50"
             aria-pressed={show}
           >
             {show ? "Hide demo highlights" : "Show demo highlights"}
-          </button>
-      <div className="hidden sm:flex gap-2 text-xs text-gray-700">
+          </Button>
+          <div className="hidden sm:flex gap-3 text-xs text-gray-700 items-center">
             {legend.map((l) => (
-        <span key={l.label} className={`${l.className} rounded px-1`}>{l.label}</span>
+              <span key={l.label} className="inline-flex items-center">
+                <HighlightedText text={l.text} items={l.items as HighlightItem[]} />
+              </span>
             ))}
           </div>
         </div>
         {show && (
-          <p className="text-base text-gray-700">
+          <p className="text-base text-gray-700" style={{ fontFamily: "var(--font-libertinus), serif" }}>
             <HighlightedText text={demoParagraph} items={demoHighlights} />
           </p>
         )}

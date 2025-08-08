@@ -29,7 +29,7 @@ export function Writer({
         autoCorrect="off"
         autoCapitalize="off"
         className="w-full h-full resize-none border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-[#111] leading-snug overflow-auto hide-scrollbar caret-[#888] focus:caret-black caret-blink selection:bg-[#b3b3b3] selection:text-black"
-        style={{ fontSize }}
+        style={{ fontSize, fontFamily: "var(--font-libertinus), serif" }}
       />
     </section>
   );
