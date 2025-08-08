@@ -21,12 +21,14 @@ There are still a lot of things missing in the system. The main goal is to have 
 * [ ] Allowing to use different languages at the smae time for polyglots
 * [ ] Allowing students to learn from writers they like
 * [ ] The mentor suggest you to rewrite certain texts or asks your opinion about them (to assess not only your writing, but your capacity of recognizing ideas in great writing, for example)
-* [ ] When practicing different writing styles the app should morph to evaluate you differently. Writing for twitter isn't the same as writing for a science paper. When writing for social media it should teach you to sell yourself (unless you explicitly tell it not to, and you follow your own style) and for scientific papers it should force you to not be vague ...
+* [ ] When practicing different writing styles the app should morph to evaluate you differently. Writing for twitter isn't the same as writing for a science paper. When writing for social media it should teach you to sell yourself (unless you explicitly tell it not to, and you follow your own style) and for scientific papers it should force you to not be vague.
 
 # Quickstart
 This is a simple [Next.js](https://nextjs.org/) app. To run it, first run the development server:
 
 ```bash
+bun run dev
+# or
 npm run dev
 # or
 yarn dev
