@@ -73,9 +73,9 @@ export function DemoBar() {
   }, []);
 
   return (
-    <div className="w-full sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-gray-200" style={{ fontFamily: "var(--font-host-grotesk), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" }}>
-      <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-2">
-        <div className="flex items-center justify-between">
+    <div className="w-full sticky top-0 z-10 border-b border-gray-200" style={{ fontFamily: "var(--font-host-grotesk), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" }}>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-2">
+        <div className="flex items-center justify-between my-3">
           <Button
             type="button"
             variant="outline"
@@ -92,6 +92,14 @@ export function DemoBar() {
               </span>
             ))}
           </div>
+        </div>
+        {/* Mobile legend */}
+        <div className="sm:hidden -mt-1 text-[11px] text-gray-700 flex flex-wrap gap-x-3 gap-y-1">
+          {legend.map((l) => (
+            <span key={l.label} className="inline-flex items-center">
+              <HighlightedText text={l.text} items={l.items as HighlightItem[]} />
+            </span>
+          ))}
         </div>
         {show && (
           <p className="text-base text-gray-700" style={{ fontFamily: "var(--font-libertinus), serif" }}>

@@ -20,7 +20,7 @@ export function Writer({
   }, []);
 
   return (
-    <section className={`w-full h-screen bg-white ${className}`}>
+    <section className={`w-full h-full bg-white flex flex-col min-h-0 ${className}`}>
       <textarea
         ref={ref}
         aria-label="Writing area"
@@ -28,7 +28,7 @@ export function Writer({
         spellCheck={false}
         autoCorrect="off"
         autoCapitalize="off"
-        className="w-full h-full resize-none border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-[#111] leading-snug overflow-auto hide-scrollbar caret-[#888] focus:caret-black caret-blink selection:bg-[#b3b3b3] selection:text-black"
+        className="flex-1 pt-3 w-full h-full resize-none border-0 outline-none focus:outline-none focus:ring-0 bg-transparent text-[#111] leading-snug overflow-auto hide-scrollbar caret-[#888] focus:caret-black caret-blink selection:bg-[#b3b3b3] selection:text-black min-h-0"
         style={{ fontSize, fontFamily: "var(--font-libertinus), serif" }}
       />
     </section>
