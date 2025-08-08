@@ -1,37 +1,14 @@
 import { NextRequest } from "next/server";
-import type { HighlightItem } from "@/lib/highlighter";
-
-// Minimal demo highlights for now (stand-in for future LLM response)
-const demoHighlights: HighlightItem[] = [
-  {
-    fragment: "literally",
-    context: "I literally held my breath",
-    type: "error",
-    hoverTip: "Unless you mean it literally, avoid intensifiers that can be misused.",
-  },
-  {
-    fragment: "basically",
-    context: "said the path was basically safe",
-    type: "wording",
-    hoverTip: "Filler. If it's safe, say 'safe'. If not, be precise.",
-  },
-  {
-    fragment: "kind of",
-    context: "felt kind of impressive",
-    type: "vague",
-    hoverTip: "Be specific—what quality did you perceive?",
-  },
-  {
-    fragment: "kinda",
-    context: "looked kinda tired",
-    type: "typo",
-    hoverTip: "Prefer a more precise, standard phrasing.",
-  },
-];
+import { analyzeTextWithLLM } from "@/lib/llmAnalyze";
 
 export async function POST(req: NextRequest) {
-  // Read the raw text but ignore it for now (demo behavior).
-  // const { text } = await req.json().catch(() => ({ text: "" }));
-  await req.json().catch(() => ({}));
-  return Response.json({ items: demoHighlights });
+  const body = await req.json().catch(() => ({} as any));
+  const text: string = typeof body?.text === "string" ? body.text : "";
+  // Optional system overrides to tweak feedback style/requirements.
+  const systemOverrides: string | undefined =
+    typeof body?.systemOverrides === "string" ? body.systemOverrides : undefined;
+  const currentItems = Array.isArray(body?.currentItems) ? body.currentItems : undefined;
+
+  const result = await analyzeTextWithLLM(text, { systemOverrides, currentItems });
+  return Response.json(result);
 }

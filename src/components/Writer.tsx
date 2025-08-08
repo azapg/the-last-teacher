@@ -160,7 +160,7 @@ export function Writer({
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, currentItems: highlightsRef.current }),
       });
       const data = await res.json().catch(() => ({ items: [] }));
       const items = Array.isArray(data.items) ? data.items : [];
