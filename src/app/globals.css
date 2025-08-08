@@ -18,3 +18,14 @@ em, i { font-style: italic; }
 
 /* Utility for full-height container */
 .page { min-height: 100dvh; }
+
+/* Nicer selection color globally */
+::selection { background: #b3b3b3; color: #000; }
+
+/* Hide default scrollbars while keeping scrolling */
+.hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Subtle caret blink utility */
+@keyframes caretBlink { 50% { caret-color: transparent; } }
+.caret-blink:focus { animation: caretBlink 1.2s steps(2, start) infinite; }
