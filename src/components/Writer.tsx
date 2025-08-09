@@ -187,6 +187,21 @@ export function Writer({
     e.preventDefault();
     const text = e.clipboardData?.getData("text/plain") ?? "";
     document.execCommand("insertText", false, text);
+    
+    // Trigger immediate analysis after paste (similar to punctuation behavior)
+    if (text.trim().length > 0) {
+      // Cancel any pending analysis to avoid double analysis
+      if (analyzeTimerRef.current) {
+        window.clearTimeout(analyzeTimerRef.current);
+        analyzeTimerRef.current = null;
+      }
+      // Update rawTextRef and trigger analysis after DOM update
+      window.setTimeout(() => {
+        const el = ref.current;
+        if (el) rawTextRef.current = el.textContent ?? "";
+        void analyzeNow();
+      }, 0);
+    }
   };
 
   const handleFocus = () => {
