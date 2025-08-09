@@ -368,8 +368,7 @@ export function Writer({
         <div
           aria-live="polite"
           aria-label="Analyzing"
-          className="absolute top-2 right-2 text-gray-500"
-          style={{ fontFamily: "var(--font-host-grotesk), system-ui" }}
+          className="absolute top-2 right-2 text-gray-500 font-sans"
         >
           <svg
             className="animate-spin h-4 w-4"
@@ -407,8 +406,9 @@ export function Writer({
           before:absolute before:inset-x-0 before:top-3 before:block before:pointer-events-none
           before:text-[#9ca3af] before:whitespace-pre-wrap before:content-[attr(data-placeholder)]
           data-[empty=false]:before:content-[''] data-[empty=false]:before:hidden
+          font-serif
         "
-        style={{ fontSize, fontFamily: "var(--font-libertinus), serif" }}
+        style={{ fontSize }}
       />
     </section>
   );
