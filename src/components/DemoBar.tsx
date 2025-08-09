@@ -73,7 +73,7 @@ export function DemoBar() {
   }, []);
 
   return (
-    <div className="w-full sticky top-0 z-10 border-b border-gray-200" style={{ fontFamily: "var(--font-host-grotesk), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" }}>
+    <div className="w-full sticky top-0 z-10 border-b border-gray-200 font-sans">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-2">
         <div className="flex items-center justify-between my-3">
           <Button
@@ -102,7 +102,7 @@ export function DemoBar() {
           ))}
         </div>
         {show && (
-          <p className="text-base text-gray-700" style={{ fontFamily: "var(--font-libertinus), serif" }}>
+          <p className="text-base text-gray-700 font-serif">
             <HighlightedText text={demoParagraph} items={demoHighlights} />
           </p>
         )}
