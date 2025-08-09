@@ -2,51 +2,61 @@
 
 Scope: Minimal Next.js 15 (App Router) + React 19 + Tailwind CSS v4 writing surface. Keep diffs tiny, align with existing patterns, and avoid framework bloat.
 
-## Architecture and layout
-- App Router lives under `src/app/*`.
-  - Root layout `src/app/layout.tsx` loads two local fonts via `next/font/local`:
-    - `--font-host-grotesk` (UI default on <body>) from `public/fonts/host-grotesk/*`.
-    - `--font-libertinus` (writer/longform) from `public/fonts/libertinus/*`.
-    - Includes `./globals.css` (Tailwind v4 import + CSS vars/utilities).
-  - Home `src/app/page.tsx` renders `<DemoBar />` and `<Writer />` inside a centered container (`WRITER_MAX_W = "max-w-5xl"`).
+## Architecture
+- App Router under `src/app/*`.
+  - Root layout `src/app/layout.tsx` loads two local fonts via `next/font/local` and imports `./globals.css`.
+    - UI: `--font-host-grotesk` from `public/fonts/host-grotesk/*`
+    - Longform: `--font-libertinus` from `public/fonts/libertinus/*`
+  - Home `src/app/page.tsx` renders `<DemoBar />` + `<Writer />` inside a centered container (`WRITER_MAX_W = "max-w-5xl"`).
+- Aliases: prefer `@/` (see `tsconfig.json`). Only add "use client" where hooks/browser APIs are used.
 
-## Core components and patterns
-- `src/components/Writer.tsx` (client): autofocus `<textarea>` writing surface.
-  - API: `fontSize?: string` (e.g., `"clamp(28px,5vw,48px)"`), `placeholder?`, `className?`.
-  - Styling: utility-first; uses `hide-scrollbar`, `caret-blink`, and `style={{ fontFamily: "var(--font-libertinus), serif" }}`.
-- `src/components/DemoBar.tsx` (client): toggleable demo/legend.
-  - Uses `Button` from `src/components/ui/button.tsx` (cva + `cn`) and `HighlightedText`.
-  - UI font set to Host Grotesk; longform preview uses Libertinus.
-- `src/components/HighlightedText.tsx`: stateless renderer for inline highlights.
-  - Splits text into parts using `computeHighlightRanges` + `splitByRanges` from `src/lib/highlighter.ts`.
-  - For items with `hoverTip`, wraps the fragment in Radix Tooltip (`components/ui/tooltip.tsx`).
-- UI primitives:
-  - `components/ui/button.tsx` uses class-variance-authority; prefer `variant="outline|..."`, `size="sm|..."` and compose with `cn(...)` from `src/lib/utils.ts`.
-  - `components/ui/tooltip.tsx` wraps `@radix-ui/react-tooltip`; content uses explicit HSL CSS vars for reliable contrast in light mode.
+## LLM analysis pipeline (server)
+- Route: `POST /api/analyze` (`src/app/api/analyze/route.ts`).
+  - Body: `{ text: string, currentItems?: HighlightItem[], systemOverrides?: string }`
+  - Calls `analyzeTextWithLLM(text, opts)` in `src/lib/llmAnalyze.ts`.
+- LLM: LangChain `ChatGroq` with default `model = "moonshotai/kimi-k2-instruct"` and `temperature=0.2`.
+  - Requires `GROQ_API_KEY` (if missing, returns `{ items: [] }`).
+  - Uses `zod` + `StructuredOutputParser` to enforce `{ items: HighlightItem[] }`.
+  - Stability: prompt includes CURRENT_HIGHLIGHTS; preserve items across small edits and avoid churn.
+- Types shape (shared with client): `HighlightItem = { fragment, context, type, hoverTip? }` with `type ∈ { typo|vague|wording|error|boring }`.
 
-## Highlighter library (what to know)
-- `src/lib/highlighter.ts` provides:
-  - Types: `HighlightType` ("typo" | "vague" | "wording" | "error" | "boring"), `HighlightItem`.
-  - `computeHighlightRanges(text, items)`: finds non-overlapping ranges, preferring `fragment` inside `context`; otherwise first occurrence of `fragment`. Overlaps are dropped conservatively (keep-first policy).
-  - `splitByRanges(text, ranges)`: returns text parts with optional attached range.
-  - `typeToClasses`: Tailwind bg + underline mapping per type. If you add a new type, update the union and this map.
+## Writing surface (client)
+- `src/components/Writer.tsx`: contentEditable editor (not a textarea) with autofocus and plain-text paste.
+  - Builds innerHTML with `<mark data-highlight data-tip>…</mark>` via `computeHighlightRanges/splitByRanges` and `typeToClasses`.
+  - Preserves caret position across DOM patches; debounce analyze (5s) and also trigger on punctuation.
+  - Fetches `/api/analyze` with `{ text, currentItems }` and applies returned items.
+  - Tooltip in editor is custom DOM (appended to a wrapper) for reliability inside contentEditable; do not use Radix here.
 
-## Styling and conventions
-- Tailwind v4 via `@tailwindcss/postcss` (no tailwind.config). Use utilities in JSX; keep globals small.
-- CSS variables defined in `globals.css` (colors, radius). Reuse helpers: `hide-scrollbar`, `caret-blink`, `.page`.
-- Only add `"use client"` when using hooks/browser APIs. Prefer `@/` imports (alias in `tsconfig.json`). Use App Router metadata exports, not `next/head`.
+## Highlight rendering (static text)
+- `src/components/HighlightedText.tsx` renders any string + `HighlightItem[]` by splitting and wrapping fragments.
+- `src/components/Highlight.tsx` uses Radix Tooltip (`components/ui/tooltip.tsx`) with click-to-pin and Escape to close.
+- `src/lib/highlighter.ts`:
+  - `computeHighlightRanges`: prefer `fragment` inside `context`; fallback to first `fragment`; drop overlaps (keep-first).
+  - `splitByRanges`: returns ordered parts.
+  - `typeToClasses`: Tailwind styles per type (bg + underline). Update when adding types.
 
-## Developer workflows
-- Dev (Turbopack): `bun run dev` (or `npm/yarn/pnpm run dev`).
-- Build: `bun run build`; Start: `bun run start`.
-- Lint: `bun run lint` (Flat config extends Next presets).
-- Tests: `bun test` (see `tests/highlighter.test.ts` for examples using `bun:test`). Run a single file: `bun test tests/highlighter.test.ts`.
+## Styling and UI primitives
+- Tailwind v4 via `@tailwindcss/postcss` (no tailwind.config). Use utilities in JSX; keep `globals.css` small.
+- Helpers in `globals.css`: `hide-scrollbar`, `caret-blink`, `.page`; selection and base CSS vars for colors/radius.
+- Fonts: default UI font is Host Grotesk (body). Use Libertinus for longform: `style={{ fontFamily: "var(--font-libertinus), serif" }}`.
+- Buttons: `components/ui/button.tsx` (CVA + `cn`); prefer `variant="outline|..."`, `size="sm|..."`.
+- Tooltip content uses explicit HSL CSS vars for consistent contrast in light mode.
+
+## Dev workflows
+- Dev (Turbopack): `bun run dev` (or `npm/yarn/pnpm run dev`). Build: `bun run build`. Start: `bun run start`.
+- Lint: `bun run lint` (Flat config extends Next). Tests: `bun test`.
+  - Example test: `tests/highlighter.test.ts` covers range finding/splitting. Run a single file: `bun test tests/highlighter.test.ts`.
+
+## Extending highlights (update all three places)
+- Add type in:
+  1) `src/lib/highlighter.ts` (union + `typeToClasses`),
+  2) `src/lib/llmAnalyze.ts` (Zod enum),
+  3) `src/lib/analyzePrompt.ts` (prompt doc). Optionally update demo legend in `components/DemoBar.tsx`.
 
 ## Key references
-- Pages: `src/app/page.tsx`.
-- Fonts/layout: `src/app/layout.tsx`, `public/fonts/*`.
-- Writer: `src/components/Writer.tsx`.
-- Demo + highlighting: `src/components/DemoBar.tsx`, `src/components/HighlightedText.tsx`, `src/lib/highlighter.ts`.
-- UI primitives: `src/components/ui/button.tsx`, `src/components/ui/tooltip.tsx`, utils in `src/lib/utils.ts`.
+- Pages/layout/fonts: `src/app/page.tsx`, `src/app/layout.tsx`, `public/fonts/*`.
+- Editor: `src/components/Writer.tsx`.
+- Highlights: `src/components/HighlightedText.tsx`, `src/components/Highlight.tsx`, `src/lib/highlighter.ts`.
+- UI primitives: `components/ui/button.tsx`, `components/ui/tooltip.tsx`, `src/lib/utils.ts`.
 
-Notes for changes: keep UI minimal and distraction-free; avoid adding server APIs/state unless requested. If unclear (e.g., new route, extending highlighting types), propose a minimal diff with file paths.
+Notes: keep UI minimal and distraction-free; avoid adding server APIs/state unless requested; prefer tiny, focused diffs with file paths in PR descriptions.
