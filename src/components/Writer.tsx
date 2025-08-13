@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { WritingBar } from "./WritingBar";
+import {
+  computeEmpty,
+  placeCaretAtStart,
+  getCaretOffset,
+  setCaretOffset,
+  escapeHtml,
+} from "@/lib/html";
 
 type WriterProps = {
   fontSize?: string; // CSS size value, e.g. "clamp(28px,5vw,48px)" or "48px"
@@ -28,99 +35,6 @@ export function Writer({
   const [loading, setLoading] = useState(false);
 
   const [writingScore, setWritingScore] = useState(0);
-
-  // Detect true emptiness (like <textarea>): newline-only counts as content
-  const computeEmpty = (el: HTMLDivElement) => {
-    const text = el.textContent ?? "";
-    if (text.length > 0) return false;
-    const html = (el.innerHTML ?? "").replace(/\u200B/g, "");
-    return html === "" || html === "<br>";
-  };
-
-  // Place caret at index 0 (start)
-  const placeCaretAtStart = (el: HTMLDivElement) => {
-    const sel = window.getSelection();
-    if (!sel) return;
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  };
-
-  // Get absolute caret offset within the element's textContent
-  const getCaretOffset = (el: HTMLDivElement): number => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return 0;
-    const range = sel.getRangeAt(0);
-    // Create a range that spans from start to caret to measure text length
-    const preRange = document.createRange();
-    preRange.selectNodeContents(el);
-    preRange.setEnd(range.endContainer, range.endOffset);
-    const s = preRange.toString();
-    return s.length;
-  };
-
-  // Restore caret by absolute text offset
-  const setCaretOffset = (el: HTMLDivElement, target: number) => {
-    const sel = window.getSelection();
-    if (!sel) return;
-    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-    let node: Node | null = walker.nextNode();
-    let remaining = target;
-
-    while (node) {
-      const len = node.textContent?.length ?? 0;
-      if (remaining <= len) {
-        const range = document.createRange();
-        range.setStart(node, Math.max(0, remaining));
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        return;
-      }
-      remaining -= len;
-      node = walker.nextNode();
-    }
-
-    // Fallback to end
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    range.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  };
-
-  const escapeHtml = (s: string) =>
-    s
-      .replaceAll(/&/g, "&amp;")
-      .replaceAll(/</g, "&lt;")
-      .replaceAll(/>/g, "&gt;")
-      .replaceAll(/"/g, "&quot;")
-      .replaceAll(/'/g, "&#39;");
-
-  // Build innerHTML with <mark> wrappers and our own tooltip wiring (data-tip)
-  const buildHTMLWithHighlights = (
-    text: string,
-    items: import("@/lib/highlighter").HighlightItem[]
-  ): string => {
-    const { computeHighlightRanges, splitByRanges, typeToClasses } = require("@/lib/highlighter");
-    const ranges = computeHighlightRanges(text, items);
-    const parts = splitByRanges(text, ranges);
-
-    let html = "";
-    for (const p of parts) {
-      if (!p.range) {
-        html += escapeHtml(p.text);
-      } else {
-        const cls = `${typeToClasses[p.range.item.type]} rounded-sm px-0.5 pointer-events-auto`;
-        const tip = (p.range.item.hoverTip ?? "").trim();
-        const tipAttr = tip ? ` data-tip="${escapeHtml(tip)}"` : "";
-        html += `<mark class="${cls}" data-highlight="true"${tipAttr}>${escapeHtml(p.text)}</mark>`;
-      }
-    }
-    return html;
-  };
 
   // Apply highlights by patching the DOM, preserving caret and placeholder state
   const applyHighlights = (items: import("@/lib/highlighter").HighlightItem[]) => {
@@ -380,6 +294,29 @@ export function Writer({
       if (analyzeTimerRef.current) window.clearTimeout(analyzeTimerRef.current);
     };
   }, []);
+
+  // Build innerHTML with <mark> wrappers and our own tooltip wiring (data-tip)
+  const buildHTMLWithHighlights = (
+    text: string,
+    items: import("@/lib/highlighter").HighlightItem[]
+  ): string => {
+    const { computeHighlightRanges, splitByRanges, typeToClasses } = require("@/lib/highlighter");
+    const ranges = computeHighlightRanges(text, items);
+    const parts = splitByRanges(text, ranges);
+
+    let html = "";
+    for (const p of parts) {
+      if (!p.range) {
+        html += escapeHtml(p.text);
+      } else {
+        const cls = `${typeToClasses[p.range.item.type]} rounded-sm px-0.5 pointer-events-auto`;
+        const tip = (p.range.item.hoverTip ?? "").trim();
+        const tipAttr = tip ? ` data-tip="${escapeHtml(tip)}"` : "";
+        html += `<mark class="${cls}" data-highlight="true"${tipAttr}>${escapeHtml(p.text)}</mark>`;
+      }
+    }
+    return html;
+  };
 
   return (
     <section ref={wrapperRef as any} className={`w-full h-full bg-white flex flex-col min-h-0 relative ${className}`}>
