@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { WritingBar } from "./WritingBar";
 
 type WriterProps = {
   fontSize?: string; // CSS size value, e.g. "clamp(28px,5vw,48px)" or "48px"
@@ -25,6 +26,8 @@ export function Writer({
   const highlightsRef = useRef<import("@/lib/highlighter").HighlightItem[]>([]);
   const analyzeTimerRef = useRef<number | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [writingScore, setWritingScore] = useState(0);
 
   // Detect true emptiness (like <textarea>): newline-only counts as content
   const computeEmpty = (el: HTMLDivElement) => {
@@ -160,12 +163,14 @@ export function Writer({
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, currentItems: highlightsRef.current }),
+        body: JSON.stringify({ text, currentItems: highlightsRef.current, currentScore: writingScore }),
       });
-      const data = await res.json().catch(() => ({ items: [] }));
+      const data = await res.json().catch(() => ({ items: [], score: 0 }));
       const items = Array.isArray(data.items) ? data.items : [];
+      const score = typeof data.score === "number" ? data.score : 0;
       highlightsRef.current = items;
       applyHighlights(items);
+      setWritingScore(score);
     } catch {
       // Swallow errors for now; keep previous view untouched
     } finally {
@@ -425,6 +430,9 @@ export function Writer({
         "
         style={{ fontSize }}
       />
+
+      {/* Writing Bar */}
+      <WritingBar score={writingScore} />
     </section>
   );
 }

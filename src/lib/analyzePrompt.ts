@@ -12,7 +12,7 @@ Important:
 - Choose the most relevant category for each issue; avoid duplicates/overlaps.
 - Fragment must literally appear in the text. Context must be a short surrounding snippet from the text that includes the fragment.
 
-Output shape (JSON tool): { items: HighlightItem[] }
+Output shape (JSON tool): { items: HighlightItem[], score: double }
 where HighlightItem = {
   fragment: string;           // exact substring to highlight
   context: string;            // short surrounding snippet from the original text (contains fragment)
@@ -26,6 +26,9 @@ Type guide:
 - wording → Awkward or verbose phrasing; propose tighter wording.
 - error   → Factual/logic/usage error, or word misuse ("literally" when not literal).
 - boring  → Cliché or low-energy phrasing; suggest more vivid but precise language.
+
+The score is a double from 0 to 1 that should reflect the overall quality of the writing, with higher scores indicating better quality.
+When a user has no meaningful errors, has overall good writing quality, prefer to give full score (1) to keep them motivated.
 
 Constraints:
 - Keep items non-overlapping when possible.

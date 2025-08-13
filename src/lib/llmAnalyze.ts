@@ -5,9 +5,10 @@ export type AnalyzeOptions = {
     systemOverrides?: string;
     model?: string; // default moonshotai/kimi-k2-instruct
     currentItems?: HighlightItem[]; // existing highlights to maintain stability
+    currentScore?: number; // existing writing score to maintain stability
 };
 
-export async function analyzeTextWithLLM(text: string, opts: AnalyzeOptions = {}) {
+export async function analyzeTextWithLLM(text: string, opts: AnalyzeOptions = {}, currentScore?: number) {
     if (!text || !text.trim()) return { items: [] as HighlightItem[] };
 
     const system = getSystemPrompt(opts.systemOverrides);
@@ -26,7 +27,7 @@ export async function analyzeTextWithLLM(text: string, opts: AnalyzeOptions = {}
         type: HighlightTypeEnum,
         hoverTip: z.string().max(200),
     });
-    const OutputSchema = z.object({ items: z.array(HighlightItemSchema) });
+    const OutputSchema = z.object({ items: z.array(HighlightItemSchema), score: z.number().min(0).max(1) });
 
     const parser = StructuredOutputParser.fromZodSchema(OutputSchema);
     const formatInstructions = parser.getFormatInstructions();
@@ -61,6 +62,9 @@ export async function analyzeTextWithLLM(text: string, opts: AnalyzeOptions = {}
                 CURRENT_HIGHLIGHTS (JSON):
                 ${JSON.stringify(opts.currentItems ?? [])}
 
+                CURRENT_WRITING_SCORE (JSON):
+                ${JSON.stringify(currentScore ?? 0)}
+
                 You MUST return only valid JSON matching the schema below.
                 ${formatInstructions}
                 `,
@@ -78,9 +82,9 @@ export async function analyzeTextWithLLM(text: string, opts: AnalyzeOptions = {}
             if (firstText) content = firstText.text as string;
         }
         const parsed = await parser.parse(content);
-        return parsed as { items: HighlightItem[] };
+        return parsed as { items: HighlightItem[], score: number };
     } catch (err) {
         console.error("LLM analyze error:", err);
-        return { items: [] as HighlightItem[] };
+        return { items: [] as HighlightItem[], score: 0 };
     }
 }

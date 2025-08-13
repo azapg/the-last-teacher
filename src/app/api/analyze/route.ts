@@ -8,7 +8,8 @@ export async function POST(req: NextRequest) {
   const systemOverrides: string | undefined =
     typeof body?.systemOverrides === "string" ? body.systemOverrides : undefined;
   const currentItems = Array.isArray(body?.currentItems) ? body.currentItems : undefined;
+  const currentScore = typeof body?.currentScore === "number" ? body.currentScore : undefined;
 
-  const result = await analyzeTextWithLLM(text, { systemOverrides, currentItems });
+  const result = await analyzeTextWithLLM(text, { systemOverrides, currentItems, currentScore });
   return Response.json(result);
 }
