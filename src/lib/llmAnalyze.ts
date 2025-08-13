@@ -46,20 +46,24 @@ export async function analyzeTextWithLLM(text: string, opts: AnalyzeOptions = {}
     const prompt = [
         {
             role: "system",
-            content:
-                system +
-                "\n\nStability policy:\n" +
-                "- The text may change frequently as the user types. Maintain stable highlights across small edits.\n" +
-                "- Treat the CURRENT_HIGHLIGHTS (below) as a baseline. Preserve an item if its fragment still appears and remains applicable.\n" +
-                "- Avoid random churn: do not change type/hoverTip/context unless the text change justifies it.\n" +
-                "- If a fragment disappears, remove that item. If context shifts slightly, keep the same fragment and update context.\n" +
-                "- You may add new items only when clearly warranted by new content.\n" +
-                "- Prefer keeping identical fragment text when still valid.\n\n" +
-                "CURRENT_HIGHLIGHTS (JSON):\n" +
-                JSON.stringify(opts.currentItems ?? []) +
-                "\n\n" +
-                "\n\nYou MUST return only valid JSON matching the schema below.\n" +
-                formatInstructions,
+            content: `
+                ${system}
+
+                Stability policy:
+                - The text may change frequently as the user types. Maintain stable highlights across small edits.
+                - Treat the CURRENT_HIGHLIGHTS (below) as a baseline. Preserve an item if its fragment still appears and remains applicable.
+                - Avoid random churn: do not change type/hoverTip/context unless the text change justifies it.
+                - If a fragment disappears, remove that item. Do not keep items for inexistent fragments of text. If context shifts slightly, keep the same fragment and update context.
+                - You may add new items only when clearly warranted by new content.
+                - Focusing on small and insignificant details is discouraged. Do not overwhelm with tiny subjective feedback.
+                - Prefer keeping identical fragment text when still valid.
+
+                CURRENT_HIGHLIGHTS (JSON):
+                ${JSON.stringify(opts.currentItems ?? [])}
+
+                You MUST return only valid JSON matching the schema below.
+                ${formatInstructions}
+                `,
         },
         { role: "user", content: text },
     ];
