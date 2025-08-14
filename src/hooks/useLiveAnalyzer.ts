@@ -17,7 +17,7 @@ export type UseLiveAnalyzerOptions = {
 
 export function useLiveAnalyzer(
   editorRef: React.RefObject<HTMLDivElement | null>,
-  { analyzeDelayMs = 5000, punctuation = [".", ",", "!", "?", ";", ":", "…", "—", ")", "]"] }: UseLiveAnalyzerOptions = {}
+  { analyzeDelayMs = 1000, punctuation = [".", ",", "!", "?", ";", ":", "…", "—", ")", "]"] }: UseLiveAnalyzerOptions = {}
 ) {
   const rawTextRef = useRef<string>("");
   const highlightsRef = useRef<HighlightItem[]>([]);
