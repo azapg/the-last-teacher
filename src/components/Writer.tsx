@@ -25,7 +25,6 @@ export function Writer({
 
   return (
     <section ref={wrapperRef} className={`w-full h-full bg-white flex flex-col min-h-0 relative ${className}`}>
-      {/* Loading spinner */}
       {loading && <LoadingSpinner />}
 
       <div
@@ -54,7 +53,6 @@ export function Writer({
         style={{ fontSize }}
       />
 
-      {/* Writing Bar */}
       <WritingBar score={score} />
     </section>
   );
